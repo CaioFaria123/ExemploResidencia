@@ -1,0 +1,102 @@
+		try {
+			POIFSFileSystem fs = new POIFSFileSystem(new FileInputStream(file));
+			HSSFWorkbook wb = new HSSFWorkbook(fs);
+			HSSFSheet sheet = wb.getSheetAt(0);
+			HSSFRow row;
+			HSSFCell cellId, cellAplic, cellTecnology;
+			int rows, errorCounter = 0;
+			int size = 0;
+			String error = "The following lines in " + fileName + " contain invalid IDs:";
+			rows = sheet.getPhysicalNumberOfRows();
+			String standardCell = "";
+			long[] standardId = new long[rows];
+			String tecnology[] = new String[rows];
+			String idAplic[] = new String[rows];
+
+			progressBar.setMinimum(0);
+			progressBar.setMaximum(rows);
+			progressBar.setVisible(true);
+
+			for (int r = 1; r < rows; r++) {
+				row = sheet.getRow(r);
+				progressBar.setValue(r);
+				progressBar.update(progressBar.getGraphics());
+				if (row != null) {
+					cellAplic = row.getCell(11);
+					if (cellAplic != null) {
+						cellAplic.setCellType(CellType.STRING);
+						standardCell = cellAplic.getStringCellValue().trim();
+					} else {
+						standardCell = "";
+					}
+					if (standardCell.equals("S") || standardCell.equals("O")) {
+						cellId = row.getCell(4);
+						cellTecnology = row.getCell(13);
+						if (cellId != null) {
+							try {
+								standardId[r - 1] = Math.round(cellId.getNumericCellValue());
+								idAplic[r - 1] = String.valueOf(standardId[r - 1]).trim() + "|" + standardCell;
+								if (cellTecnology != null) {
+									tecnology[r - 1] = cellTecnology.getStringCellValue();
+								} else {
+									tecnology[r - 1] = "";
+								}
+								size++;
+							} catch (Exception ex) {
+								error = error + "\r\n" + "Line: " + r;
+								errorCounter++;
+								continue;
+							}
+						}
+					}
+				}
+			}
+
+			if (errorCounter != 0) {
+				JOptionPane.showMessageDialog(null, error, "Error!", JOptionPane.INFORMATION_MESSAGE);
+				wb.close();
+				return null;
+			} else {
+				wb.close();
+				return new WorkbookIdData(standardId, tecnology, idAplic);
+			}
+
+		} catch (Exception ioe) {
+			JOptionPane.showMessageDialog(null,
+					"The application failed to retrieve information from  TODASINST_BANCO_ID.xls. Make sure that the file is not being used by another process.",
+					"Error!", JOptionPane.INFORMATION_MESSAGE);
+			ioe.printStackTrace();
+			return null;
+		}
+
+//////////////////////////////////////
+
+String path = new File(".").getCanonicalPath();
+		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+		String FILE_NAME = path + "\\RadarV1_Extract_" + timeStamp + ".xlsx";
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		XSSFSheet sheet01 = workbook.createSheet("Optionals and Options missmatch");
+		XSSFRow rowHeadSheet01 = sheet01.createRow(0);
+		rowHeadSheet01.createCell(0).setCellValue("Optionals from SUBSTATION missmatched in PCM Optionals");
+		rowHeadSheet01.createCell(1).setCellValue("Options from SUBSTATION missmatched in PCM Optionals");
+
+if (resultOptional != null && resultOptional != "") {
+				XSSFRow rowSheetFind01 = sheet01.getRow(optionalSheetIndex);
+				rowSheetFind01.createCell(0);
+				rowSheetFind01.getCell(0).setCellValue(resultOptional);
+				optionalSheetIndex++;
+			}
+			if (resultOption != null && resultOption != "") {
+				XSSFRow rowSheetFind01 = sheet01.getRow(optionSheetIndex);
+				rowSheetFind01.createCell(1);
+				rowSheetFind01.getCell(1).setCellValue(resultOption);
+				optionSheetIndex++;
+			}
+
+//////////////////////////////////////
+
+			FileOutputStream outputStream = new FileOutputStream(FILE_NAME);
+			workbook.write(outputStream);
+			workbook.close();
+			outputStream.close();
+
